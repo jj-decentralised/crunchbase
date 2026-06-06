@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode (next-themes toggles `.dark` on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Capital Flows design system.
+  Light + dark palettes tuned for a dense financial research dashboard.
+  Colors expressed as HSL channels so we can compose with opacity via Tailwind.
+*/
+:root {
+  --background: 210 40% 99%;
+  --surface: 0 0% 100%;
+  --surface-2: 210 40% 97%;
+  --border: 214 32% 91%;
+  --border-strong: 214 25% 84%;
+  --foreground: 222 47% 11%;
+  --muted: 215 16% 47%;
+  --muted-2: 215 20% 65%;
+
+  --primary: 243 75% 59%;        /* indigo */
+  --primary-foreground: 0 0% 100%;
+  --accent: 174 72% 40%;         /* teal */
+  --positive: 142 71% 38%;
+  --negative: 0 72% 51%;
+  --warning: 38 92% 50%;
+
+  --ring: 243 75% 59%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 224 47% 7%;
+  --surface: 222 44% 10%;
+  --surface-2: 222 40% 13%;
+  --border: 222 30% 18%;
+  --border-strong: 222 25% 26%;
+  --foreground: 210 40% 96%;
+  --muted: 217 20% 65%;
+  --muted-2: 217 15% 45%;
+
+  --primary: 234 89% 74%;        /* lighter indigo for dark */
+  --primary-foreground: 224 47% 9%;
+  --accent: 172 66% 50%;
+  --positive: 142 69% 58%;
+  --negative: 0 84% 65%;
+  --warning: 38 95% 60%;
+
+  --ring: 234 89% 74%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-surface: hsl(var(--surface));
+  --color-surface-2: hsl(var(--surface-2));
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-foreground: hsl(var(--foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-2: hsl(var(--muted-2));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-positive: hsl(var(--positive));
+  --color-negative: hsl(var(--negative));
+  --color-warning: hsl(var(--warning));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-sm: calc(var(--radius) - 0.4rem);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Thin, theme-aware scrollbars for the dense dashboard surfaces */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border-strong)) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border-strong));
+  border-radius: 9999px;
+}
+
+/* Numeric/tabular figures look right aligned in tables and KPI cards */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out both;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--surface-2));
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--border) / 0.6),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
