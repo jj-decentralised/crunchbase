@@ -18,19 +18,25 @@ export interface DbHandle {
 }
 
 // Cache on globalThis so dev HMR / repeated script imports reuse one connection.
-const globalForDb = globalThis as unknown as { __cfDb?: DbHandle };
+// We cache the in-flight promise to avoid double-initialization on cold starts.
+const globalForDb = globalThis as unknown as {
+  __cfDbPromise?: Promise<DbHandle>;
+};
 
-export async function getDbHandle(env: Env = getEnv()): Promise<DbHandle> {
-  if (globalForDb.__cfDb) return globalForDb.__cfDb;
-
+async function createHandle(env: Env): Promise<DbHandle> {
   const { kind, target } = resolveDbDriver(env);
-  let handle: DbHandle;
 
   if (kind === "pglite") {
     const { PGlite } = await import("@electric-sql/pglite");
-    const client = new PGlite(target === ":memory:" ? undefined : target);
+    const inMemory = target === ":memory:";
+    const client = new PGlite(inMemory ? undefined : target);
     const db = drizzlePglite(client, { schema });
-    handle = {
+    // Ephemeral in-memory DB (demo): create schema + seed the mock dataset.
+    if (inMemory) {
+      const { bootstrapDemo } = await import("./bootstrap");
+      await bootstrapDemo(db);
+    }
+    return {
       db,
       driver: "pglite",
       raw: client,
@@ -38,22 +44,30 @@ export async function getDbHandle(env: Env = getEnv()): Promise<DbHandle> {
         await client.close();
       },
     };
-  } else {
-    const { Pool } = await import("pg");
-    const pool = new Pool({ connectionString: target, max: 5 });
-    const db = drizzlePg(pool, { schema });
-    handle = {
-      db,
-      driver: "pg",
-      raw: pool,
-      close: async () => {
-        await pool.end();
-      },
-    };
   }
 
-  globalForDb.__cfDb = handle;
-  return handle;
+  const { Pool } = await import("pg");
+  const pool = new Pool({ connectionString: target, max: 5 });
+  const db = drizzlePg(pool, { schema });
+  return {
+    db,
+    driver: "pg",
+    raw: pool,
+    close: async () => {
+      await pool.end();
+    },
+  };
+}
+
+export async function getDbHandle(env: Env = getEnv()): Promise<DbHandle> {
+  if (!globalForDb.__cfDbPromise) {
+    globalForDb.__cfDbPromise = createHandle(env).catch((err) => {
+      // Allow a later retry if initialization failed.
+      globalForDb.__cfDbPromise = undefined;
+      throw err;
+    });
+  }
+  return globalForDb.__cfDbPromise;
 }
 
 /** Convenience accessor for the Drizzle db instance. */
