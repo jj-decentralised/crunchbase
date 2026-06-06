@@ -1,14 +1,6 @@
 import "./_env";
 import { getDbHandle } from "@/lib/db";
-import {
-  categories,
-  categoryGroups,
-  fundingRounds,
-  organizationCategories,
-  organizations,
-  roundCategoryGroups,
-  syncState,
-} from "@/lib/db/schema";
+import { purgeAll } from "@/lib/ingest/purge";
 
 /**
  * Expunge all Crunchbase-derived data. Satisfies the license requirement to
@@ -17,15 +9,7 @@ import {
 async function main() {
   const { db, close } = await getDbHandle();
   console.log("Purging all Crunchbase-derived data…");
-
-  await db.delete(roundCategoryGroups);
-  await db.delete(fundingRounds);
-  await db.delete(organizationCategories);
-  await db.delete(organizations);
-  await db.delete(categories);
-  await db.delete(categoryGroups);
-  await db.delete(syncState);
-
+  await purgeAll(db);
   console.log("✓ All ingested data expunged.");
   await close();
 }

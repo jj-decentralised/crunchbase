@@ -3,6 +3,7 @@
 import {
   Area,
   AreaChart,
+  Brush,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -21,12 +22,14 @@ export function AreaTrend({
   grain,
   mode = "stacked",
   height = 320,
+  showBrush = false,
 }: {
   data: Array<Record<string, string | number>>;
   groups: string[];
   grain: "month" | "quarter" | "year";
   mode?: TrendMode;
   height?: number;
+  showBrush?: boolean;
 }) {
   const colors = buildColorMap(groups);
   const stackOffset = mode === "stream" ? "wiggle" : mode === "share" ? "expand" : "none";
@@ -76,6 +79,16 @@ export function AreaTrend({
               isAnimationActive={false}
             />
           ))}
+          {showBrush && (
+            <Brush
+              dataKey="period"
+              height={22}
+              travellerWidth={8}
+              stroke="hsl(var(--primary))"
+              fill="hsl(var(--surface-2))"
+              tickFormatter={(v: string) => periodLabel(v, grain)}
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>

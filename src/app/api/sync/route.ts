@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { createProvider } from "@/lib/crunchbase/provider";
 import { getScope } from "@/lib/scope-store";
 import { runSync } from "@/lib/ingest/sync";
+import { isAuthorized } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,15 +18,15 @@ export const maxDuration = 60;
 async function handle(request: Request): Promise<NextResponse> {
   const env = getEnv();
 
-  // Auth: require CRON_SECRET in production; allow open access only in dev.
+  // Auth: accept the CRON_SECRET (Vercel Cron) OR a logged-in admin (Settings UI).
   if (env.CRON_SECRET) {
     const auth = request.headers.get("authorization");
     const alt = request.headers.get("x-cron-secret");
-    const ok = auth === `Bearer ${env.CRON_SECRET}` || alt === env.CRON_SECRET;
-    if (!ok) {
+    const cronOk = auth === `Bearer ${env.CRON_SECRET}` || alt === env.CRON_SECRET;
+    if (!cronOk && !(await isAuthorized(env))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-  } else if (env.NODE_ENV === "production") {
+  } else if (env.NODE_ENV === "production" && !(await isAuthorized(env))) {
     return NextResponse.json(
       { error: "CRON_SECRET is not configured" },
       { status: 500 },
