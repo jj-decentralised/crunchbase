@@ -33,7 +33,8 @@ export async function bootstrapDemo(db: Database): Promise<void> {
     ]);
   const { appConfig, syncState } = await import("./schema");
 
-  const ds = generateMockDataset();
+  // Slightly trimmed for fast serverless cold-start seeding while staying rich.
+  const ds = generateMockDataset({ scale: 0.6 });
   const orgByUuid = new Map(ds.organizations.map((o) => [o.uuid, o]));
 
   await persist.upsertCategoryGroups(db, ds.categoryGroups);
