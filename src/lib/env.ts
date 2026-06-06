@@ -67,6 +67,11 @@ export function resolveDbDriver(env: Env = getEnv()): {
 } {
   const url = env.DATABASE_URL?.trim();
   if (!url || url === "pglite" || url.startsWith("pglite://")) {
+    // On a serverless host (Vercel) with no DATABASE_URL, the filesystem is
+    // read-only — use an ephemeral in-memory DB that self-seeds a demo dataset.
+    if (!url && process.env.VERCEL) {
+      return { kind: "pglite", target: ":memory:" };
+    }
     const target = url?.startsWith("pglite://")
       ? url.slice("pglite://".length) || env.PGLITE_PATH
       : env.PGLITE_PATH;
