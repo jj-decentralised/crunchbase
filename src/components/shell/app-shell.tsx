@@ -7,6 +7,7 @@ import { Topbar } from "./topbar";
 import { FilterBar, type FiltersMetaProps } from "./filter-bar";
 import { CommandPalette } from "./command-palette";
 import { CapabilityBanner } from "./capability-banner";
+import { MobileNav } from "./mobile-nav";
 
 const NO_FILTER_ROUTES = ["/settings"];
 
@@ -27,6 +28,7 @@ export function AppShell({
       <Sidebar appName={appName} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
+        <MobileNav />
         <CapabilityBanner />
         {showFilters && (
           <div className="sticky top-0 z-30 border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur md:px-6">
