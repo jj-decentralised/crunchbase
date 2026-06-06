@@ -386,6 +386,35 @@ export async function getCategoryDetail(
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface StageSplitRow {
+  stage: string;
+  total: number;
+  rounds: number;
+}
+
+/** Capital + round count by stage bucket for the filtered set. */
+export async function getStageSplit(
+  db: Database,
+  f: MetricsFilter,
+): Promise<StageSplitRow[]> {
+  const conds = breakdownConditions(f);
+  const s = sql`
+    select rcg.stage_bucket as stage,
+      sum(${moneyExpr(f.attributionMethod)})::bigint as total,
+      count(distinct rcg.round_uuid)::int as rounds
+    from round_category_groups rcg${whereClause(conds)}
+    group by rcg.stage_bucket
+  `;
+  const order = new Map<string, number>(STAGE_BUCKETS.map((s2, i) => [s2, i]));
+  return rowsOf<{ stage: string; total: number; rounds: number }>(
+    await db.execute(s),
+  )
+    .map((r) => ({ stage: r.stage, total: Number(r.total), rounds: Number(r.rounds) }))
+    .sort((a, b) => (order.get(a.stage) ?? 99) - (order.get(b.stage) ?? 99));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface DealRow {
   uuid: string;
   orgName: string;
