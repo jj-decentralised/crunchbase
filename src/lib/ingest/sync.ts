@@ -5,6 +5,7 @@ import { syncState } from "@/lib/db/schema";
 import type { DataProvider } from "@/lib/crunchbase/provider";
 import type { Scope } from "@/lib/config";
 import type { Organization } from "@/lib/crunchbase/types";
+import { setCapabilities } from "@/lib/caps-store";
 import {
   ensureCategoryGroups,
   loadOrganizations,
@@ -60,6 +61,15 @@ export async function runSync(opts: SyncOptions): Promise<SyncResult> {
     .limit(1);
   let cursor: string | null = reset ? null : (existing[0]?.cursorUuid ?? null);
   const isFreshStart = reset || !existing[0];
+
+  // Detect + cache capabilities so the UI can surface tier without live calls.
+  try {
+    const caps = await provider.detectCapabilities();
+    await setCapabilities(db, caps);
+    log(`capabilities: ${caps.tier}`);
+  } catch (err) {
+    log(`capability detection skipped: ${(err as Error).message}`);
+  }
 
   // On a fresh start, seed the category taxonomy (best-effort for live keys).
   if (isFreshStart) {
