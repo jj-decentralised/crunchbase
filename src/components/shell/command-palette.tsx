@@ -61,8 +61,18 @@ export function CommandPalette({
   const filtered = useMemo(() => {
     if (!q) return items;
     const lower = q.toLowerCase();
+    const initials = (s: string) =>
+      s
+        .split(/[^a-zA-Z0-9]+/)
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join("")
+        .toLowerCase();
     return items.filter(
-      (i) => i.label.toLowerCase().includes(lower) || i.hint.toLowerCase().includes(lower),
+      (i) =>
+        i.label.toLowerCase().includes(lower) ||
+        i.hint.toLowerCase().includes(lower) ||
+        initials(i.label).includes(lower), // e.g. "AI" -> Artificial Intelligence
     );
   }, [items, q]);
 
