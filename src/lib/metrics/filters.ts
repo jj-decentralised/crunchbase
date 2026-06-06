@@ -52,6 +52,18 @@ export function parseFilterFromParams(
   });
 }
 
+/** Parse a filter from a Next.js page `searchParams` object. */
+export function parseFilterFromObject(
+  obj: Record<string, string | string[] | undefined>,
+): MetricsFilter {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(obj)) {
+    if (v == null) continue;
+    params.set(k, Array.isArray(v) ? v.join(",") : v);
+  }
+  return parseFilterFromParams(params);
+}
+
 /** Serialize a filter to a query string (omitting defaults for clean URLs). */
 export function filterToSearchParams(filter: MetricsFilter): URLSearchParams {
   const p = new URLSearchParams();
