@@ -23,6 +23,79 @@ import {
 
 const BATCH = 500;
 
+/**
+ * Load organizations (with their resolved category-group ids) from the DB so we
+ * can build fact rows for rounds whose org is already enriched, without
+ * re-fetching from the API.
+ */
+export async function loadOrganizations(
+  db: Database,
+  uuids: string[],
+): Promise<Map<string, Organization>> {
+  const map = new Map<string, Organization>();
+  if (!uuids.length) return map;
+
+  for (const batch of chunk(uuids, BATCH)) {
+    const orgs = await db
+      .select()
+      .from(organizationsTable)
+      .where(inArray(organizationsTable.uuid, batch));
+    const cats = await db
+      .select()
+      .from(orgCategoriesTable)
+      .where(inArray(orgCategoriesTable.orgUuid, batch));
+
+    const groupsByOrg = new Map<string, string[]>();
+    const catsByOrg = new Map<string, string[]>();
+    for (const c of cats) {
+      if (c.categoryGroupId) {
+        const g = groupsByOrg.get(c.orgUuid) ?? [];
+        if (!g.includes(c.categoryGroupId)) g.push(c.categoryGroupId);
+        groupsByOrg.set(c.orgUuid, g);
+      }
+      const cc = catsByOrg.get(c.orgUuid) ?? [];
+      cc.push(c.categoryId);
+      catsByOrg.set(c.orgUuid, cc);
+    }
+
+    for (const o of orgs) {
+      map.set(o.uuid, {
+        uuid: o.uuid,
+        permalink: o.permalink,
+        name: o.name,
+        shortDescription: o.shortDescription,
+        countryCode: o.countryCode,
+        region: o.region,
+        city: o.city,
+        foundedOn: o.foundedOn,
+        fundingTotalUsd: o.fundingTotalUsd,
+        lastFundingAt: o.lastFundingAt,
+        categoryIds: catsByOrg.get(o.uuid) ?? [],
+        categoryGroupIds: groupsByOrg.get(o.uuid) ?? [],
+        cbUpdatedAt: o.cbUpdatedAt,
+      });
+    }
+  }
+  return map;
+}
+
+/**
+ * Ensure every referenced category-group id exists (fallback name = id). For
+ * the mock provider these already exist with proper names; for a live key
+ * without taxonomy access this keeps fact-table joins lossless.
+ */
+export async function ensureCategoryGroups(
+  db: Database,
+  groupIds: string[],
+): Promise<void> {
+  const ids = Array.from(new Set(groupIds.filter(Boolean)));
+  if (!ids.length) return;
+  const rows = ids.map((id) => ({ id, name: id }));
+  for (const batch of chunk(rows, BATCH)) {
+    await db.insert(categoryGroupsTable).values(batch).onConflictDoNothing();
+  }
+}
+
 export async function upsertCategoryGroups(
   db: Database,
   groups: CategoryGroup[],
